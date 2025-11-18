@@ -1,5 +1,5 @@
 import { useState } from 'react'
-<parameter name="plus, Trash2, Flame, Target, TrendingUp, CheckCircle2, Circle } from 'lucide-react'
+import { Plus, Trash2, Flame, Target, TrendingUp, CheckCircle2, Circle } from 'lucide-react'
 import useStore from '../../store/useStore'
 
 export default function Habits() {
@@ -25,16 +25,15 @@ export default function Habits() {
   const completedToday = habits.filter(h => {
     const lastCompleted = h.lastCompleted ? new Date(h.lastCompleted) : null
     const today = new Date()
-    return lastCompleted && 
-           lastCompleted.getDate() === today.getDate() &&
-           lastCompleted.getMonth() === today.getMonth() &&
-           lastCompleted.getFullYear() === today.getFullYear()
+    return lastCompleted &&
+      lastCompleted.getDate() === today.getDate() &&
+      lastCompleted.getMonth() === today.getMonth() &&
+      lastCompleted.getFullYear() === today.getFullYear()
   }).length
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-900 dark:to-gray-800 pt-20 px-4 pb-8">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-3">
             <TrendingUp className="text-green-600" size={48} />
@@ -113,10 +112,10 @@ export default function Habits() {
             habits.map((habit) => {
               const lastCompleted = habit.lastCompleted ? new Date(habit.lastCompleted) : null
               const today = new Date()
-              const isCompletedToday = lastCompleted && 
-                                      lastCompleted.getDate() === today.getDate() &&
-                                      lastCompleted.getMonth() === today.getMonth() &&
-                                      lastCompleted.getFullYear() === today.getFullYear()
+              const isCompletedToday = lastCompleted &&
+                lastCompleted.getDate() === today.getDate() &&
+                lastCompleted.getMonth() === today.getMonth() &&
+                lastCompleted.getFullYear() === today.getFullYear()
 
               return (
                 <div
@@ -132,14 +131,14 @@ export default function Habits() {
                         {habit.frequency === 'daily' ? '📅 Өдөр бүр' : '📆 7 хоног тутам'}
                       </span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => deleteHabit(habit.id)}
                       className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition"
                     >
                       <Trash2 size={18} />
                     </button>
                   </div>
-                  
+
                   {/* Streak display */}
                   <div className="bg-gradient-to-r from-orange-500 to-red-500 p-4 rounded-xl mb-4">
                     <div className="flex items-center justify-center gap-3">
@@ -164,17 +163,16 @@ export default function Habits() {
                         const completed = habit.history?.some(h => {
                           const hDate = new Date(h)
                           return hDate.getDate() === date.getDate() &&
-                                 hDate.getMonth() === date.getMonth() &&
-                                 hDate.getFullYear() === date.getFullYear()
+                            hDate.getMonth() === date.getMonth() &&
+                            hDate.getFullYear() === date.getFullYear()
                         })
                         return (
                           <div
                             key={i}
-                            className={`flex-1 h-8 rounded ${
-                              completed 
-                                ? 'bg-green-500' 
+                            className={`flex-1 h-8 rounded ${completed
+                                ? 'bg-green-500'
                                 : 'bg-gray-200 dark:bg-gray-700'
-                            }`}
+                              }`}
                             title={date.toLocaleDateString('mn-MN')}
                           />
                         )
@@ -189,7 +187,7 @@ export default function Habits() {
                       Өнөөдөр хийсэн
                     </div>
                   ) : (
-                    <button 
+                    <button
                       onClick={() => handleComplete(habit.id)}
                       className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 rounded-xl transition transform hover:scale-105 shadow-lg font-medium flex items-center justify-center gap-2"
                     >
@@ -217,11 +215,11 @@ export default function Habits() {
           <div className="mt-8 bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-2xl shadow-xl text-white">
             <h3 className="text-2xl font-bold mb-2">💪 Урамшуулал</h3>
             <p className="text-white/90">
-              {completedToday === habits.length 
+              {completedToday === habits.length
                 ? "Гайхалтай! Бүх дадлаа хийж дуусгалаа! 🎉"
                 : completedToday > 0
-                ? `Сайн байна! ${habits.length - completedToday} дадал үлдсэн байна.`
-                : "Өнөөдрийн дадлаа эхлүүлээрэй! Та чадна! 🚀"
+                  ? `Сайн байна! ${habits.length - completedToday} дадал үлдсэн байна.`
+                  : "Өнөөдрийн дадлаа эхлүүлээрэй! Та чадна! 🚀"
               }
             </p>
           </div>
