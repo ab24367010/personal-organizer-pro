@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import useStore from '../../store/useStore'
-import { UserPlus, Mail, Lock, User, Eye, EyeOff, CheckCircle2, AlertCircle, Sparkles, Check, X } from 'lucide-react'
+import { UserPlus, Mail, Lock, User, Eye, EyeOff, CheckCircle2, AlertCircle, Sparkles, Check, X, Loader2 } from 'lucide-react'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -18,7 +18,7 @@ export default function Register() {
   const login = useStore((state) => state.login)
   const navigate = useNavigate()
 
-  const validateEmail = (email) => /\S+@\S+\.\S+/.test(email)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
   const getPasswordStrength = (password) => {
     let strength = 0
@@ -41,33 +41,55 @@ export default function Register() {
     { label: 'Тусгай тэмдэгт', met: /[^a-zA-Z0-9]/.test(formData.password) }
   ]
 
+  // Mock existing users - Жинхэнэ backend дээр энэ хэсэг байхгүй
+  const existingUsers = [
+    'demo@example.com',
+    'admin@example.com',
+    'test@test.com'
+  ]
+
   const validateForm = () => {
     const newErrors = {}
 
+    // Name validation
     if (!formData.name.trim()) {
       newErrors.name = 'Нэр шаардлагатай'
     } else if (formData.name.trim().length < 2) {
       newErrors.name = 'Нэр хамгийн багадаа 2 тэмдэгт байх ёстой'
+    } else if (formData.name.trim().length > 50) {
+      newErrors.name = 'Нэр хэт урт байна'
+    } else if (!/^[a-zA-Zа-яА-ЯөӨүҮёЁ\s]+$/.test(formData.name)) {
+      newErrors.name = 'Нэр зөвхөн үсэг агуулах ёстой'
     }
 
+    // Email validation
     if (!formData.email) {
       newErrors.email = 'И-мэйл шаардлагатай'
     } else if (!validateEmail(formData.email)) {
       newErrors.email = 'И-мэйл буруу байна'
+    } else if (existingUsers.includes(formData.email.toLowerCase())) {
+      newErrors.email = 'Энэ и-мэйл бүртгэлтэй байна'
     }
 
+    // Password validation
     if (!formData.password) {
       newErrors.password = 'Нууц үг шаардлагатай'
     } else if (formData.password.length < 6) {
       newErrors.password = 'Нууц үг хамгийн багадаа 6 тэмдэгт байх ёстой'
+    } else if (formData.password.length > 50) {
+      newErrors.password = 'Нууц үг хэт урт байна'
+    } else if (passwordStrength < 2) {
+      newErrors.password = 'Нууц үг хангалтгүй хүчтэй байна'
     }
 
+    // Confirm password validation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Нууц үг баталгаажуулах шаардлагатай'
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Нууц үг таарахгүй байна'
     }
 
+    // Terms validation
     if (!acceptTerms) {
       newErrors.terms = 'Үйлчилгээний нөхцлийг зөвшөөрөх шаардлагатай'
     }
@@ -85,7 +107,12 @@ export default function Register() {
 
     // Simulate API call
     setTimeout(() => {
-      login({ email: formData.email, name: formData.name })
+      // Success - Auto login after registration
+      login({
+        email: formData.email,
+        name: formData.name
+      })
+
       navigate('/todos')
       setIsLoading(false)
     }, 1500)
@@ -93,7 +120,10 @@ export default function Register() {
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value })
-    setErrors({ ...errors, [field]: '' })
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: '' })
+    }
   }
 
   return (
@@ -122,7 +152,7 @@ export default function Register() {
             {/* Name Input */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Нэр
+                Нэр *
               </label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -130,18 +160,22 @@ export default function Register() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
-                  className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.name
+                  disabled={isLoading}
+                  className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${errors.name
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                       : 'border-gray-200 focus:border-pink-500 focus:ring-pink-500'
-                    } focus:ring-2 outline-none transition-all`}
+                    } focus:ring-2 outline-none transition-all disabled:opacity-50`}
                   placeholder="Таны нэр"
+                  autoComplete="name"
                 />
-                {errors.name && (
+                {errors.name ? (
                   <AlertCircle className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-500" />
+                ) : formData.name && !errors.name && (
+                  <CheckCircle2 className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
                 )}
               </div>
               {errors.name && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-shake">
                   <AlertCircle className="w-4 h-4" />
                   {errors.name}
                 </p>
@@ -151,26 +185,30 @@ export default function Register() {
             {/* Email Input */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                И-мэйл хаяг
+                И-мэйл хаяг *
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.email
+                  onChange={(e) => handleChange('email', e.target.value.toLowerCase())}
+                  disabled={isLoading}
+                  className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${errors.email
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                       : 'border-gray-200 focus:border-pink-500 focus:ring-pink-500'
-                    } focus:ring-2 outline-none transition-all`}
+                    } focus:ring-2 outline-none transition-all disabled:opacity-50`}
                   placeholder="example@email.com"
+                  autoComplete="email"
                 />
-                {errors.email && (
+                {errors.email ? (
                   <AlertCircle className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-500" />
+                ) : formData.email && validateEmail(formData.email) && !existingUsers.includes(formData.email) && (
+                  <CheckCircle2 className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
                 )}
               </div>
               {errors.email && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-shake">
                   <AlertCircle className="w-4 h-4" />
                   {errors.email}
                 </p>
@@ -180,7 +218,7 @@ export default function Register() {
             {/* Password Input */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Нууц үг
+                Нууц үг *
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -188,15 +226,18 @@ export default function Register() {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
+                  disabled={isLoading}
                   className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${errors.password
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                       : 'border-gray-200 focus:border-pink-500 focus:ring-pink-500'
-                    } focus:ring-2 outline-none transition-all`}
+                    } focus:ring-2 outline-none transition-all disabled:opacity-50`}
                   placeholder="••••••••"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -216,7 +257,10 @@ export default function Register() {
                     ))}
                   </div>
                   <p className="text-sm text-gray-600">
-                    Хүч: <span className="font-semibold">{strengthLabels[passwordStrength]}</span>
+                    Хүч: <span className={`font-semibold ${passwordStrength >= 4 ? 'text-green-600' :
+                        passwordStrength >= 3 ? 'text-blue-600' :
+                          passwordStrength >= 2 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>{strengthLabels[passwordStrength]}</span>
                   </p>
                 </div>
               )}
@@ -240,7 +284,7 @@ export default function Register() {
               )}
 
               {errors.password && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-shake">
                   <AlertCircle className="w-4 h-4" />
                   {errors.password}
                 </p>
@@ -250,7 +294,7 @@ export default function Register() {
             {/* Confirm Password Input */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Нууц үг баталгаажуулах
+                Нууц үг баталгаажуулах *
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -258,15 +302,18 @@ export default function Register() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                  disabled={isLoading}
                   className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${errors.confirmPassword
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                       : 'border-gray-200 focus:border-pink-500 focus:ring-pink-500'
-                    } focus:ring-2 outline-none transition-all`}
+                    } focus:ring-2 outline-none transition-all disabled:opacity-50`}
                   placeholder="••••••••"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={isLoading}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -279,7 +326,7 @@ export default function Register() {
                 </p>
               )}
               {errors.confirmPassword && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-shake">
                   <AlertCircle className="w-4 h-4" />
                   {errors.confirmPassword}
                 </p>
@@ -296,14 +343,15 @@ export default function Register() {
                     setAcceptTerms(e.target.checked)
                     setErrors({ ...errors, terms: '' })
                   }}
-                  className="w-5 h-5 rounded text-pink-600 focus:ring-pink-500 focus:ring-2 cursor-pointer mt-0.5"
+                  disabled={isLoading}
+                  className="w-5 h-5 rounded text-pink-600 focus:ring-pink-500 focus:ring-2 cursor-pointer mt-0.5 disabled:opacity-50"
                 />
                 <span className="ml-3 text-sm text-gray-700 group-hover:text-pink-600 transition">
                   Би <button type="button" className="text-pink-600 hover:underline font-semibold">үйлчилгээний нөхцөл</button> болон <button type="button" className="text-pink-600 hover:underline font-semibold">нууцлалын бодлого</button>-тай танилцаж, зөвшөөрч байна
                 </span>
               </label>
               {errors.terms && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-shake">
                   <AlertCircle className="w-4 h-4" />
                   {errors.terms}
                 </p>
@@ -318,7 +366,7 @@ export default function Register() {
             >
               {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   Бүртгүүлж байна...
                 </>
               ) : (
@@ -342,7 +390,10 @@ export default function Register() {
 
           {/* Social Register */}
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all transform hover:scale-105 font-medium text-gray-700">
+            <button
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all transform hover:scale-105 font-medium text-gray-700 disabled:opacity-50"
+              disabled={isLoading}
+            >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -351,7 +402,10 @@ export default function Register() {
               </svg>
               Google
             </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all transform hover:scale-105 font-medium text-gray-700">
+            <button
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all transform hover:scale-105 font-medium text-gray-700 disabled:opacity-50"
+              disabled={isLoading}
+            >
               <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
@@ -376,6 +430,17 @@ export default function Register() {
           © 2025 Personal Organizer Pro. Бүх эрх хуулиар хамгаалагдсан.
         </p>
       </div>
+
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.3s ease-in-out;
+        }
+      `}</style>
     </div>
   )
 }

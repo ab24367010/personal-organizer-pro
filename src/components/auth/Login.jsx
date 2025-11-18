@@ -1,34 +1,46 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import useStore from '../../store/useStore'
-import { LogIn, Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react'
+import { LogIn, Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Sparkles, Loader2 } from 'lucide-react'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  })
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const login = useStore((state) => state.login)
   const navigate = useNavigate()
 
   const validateForm = () => {
     const newErrors = {}
 
-    if (!email) {
+    // Email validation
+    if (!formData.email) {
       newErrors.email = 'И-мэйл шаардлагатай'
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'И-мэйл буруу байна'
     }
 
-    if (!password) {
+    // Password validation
+    if (!formData.password) {
       newErrors.password = 'Нууц үг шаардлагатай'
-    } else if (password.length < 6) {
+    } else if (formData.password.length < 6) {
       newErrors.password = 'Нууц үг хамгийн багадаа 6 тэмдэгт байх ёстой'
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
+  }
+
+  // Mock user database - Жинхэнэ backend дээр энэ хэсэг байхгүй
+  const mockUsers = {
+    'demo@example.com': { password: 'demo123', name: 'Demo User' },
+    'admin@example.com': { password: 'admin123', name: 'Admin' },
+    'test@test.com': { password: 'test123', name: 'Test User' }
   }
 
   const handleSubmit = async (e) => {
@@ -40,16 +52,47 @@ export default function Login() {
 
     // Simulate API call
     setTimeout(() => {
-      login({ email, name: email.split('@')[0] })
+      // Check credentials
+      const user = mockUsers[formData.email]
+
+      if (!user) {
+        setErrors({ email: 'И-мэйл олдсонгүй' })
+        setIsLoading(false)
+        return
+      }
+
+      if (user.password !== formData.password) {
+        setErrors({ password: 'Нууц үг буруу байна' })
+        setIsLoading(false)
+        return
+      }
+
+      // Success - Login
+      login({
+        email: formData.email,
+        name: user.name,
+        rememberMe
+      })
+
       navigate('/todos')
       setIsLoading(false)
     }, 1000)
   }
 
   const handleDemoLogin = () => {
-    setEmail('demo@example.com')
-    setPassword('demo123')
+    setFormData({
+      email: 'demo@example.com',
+      password: 'demo123'
+    })
     setErrors({})
+  }
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
   }
 
   return (
@@ -78,31 +121,30 @@ export default function Login() {
             {/* Email Input */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                И-мэйл хаяг
+                И-мэйл хаяг *
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value)
-                    setErrors({ ...errors, email: '' })
-                  }}
-                  className={`w-full pl-12 pr-4 py-4 rounded-xl border-2 ${errors.email
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  disabled={isLoading}
+                  className={`w-full pl-12 pr-12 py-4 rounded-xl border-2 ${errors.email
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                       : 'border-gray-200 focus:border-purple-500 focus:ring-purple-500'
-                    } focus:ring-2 outline-none transition-all`}
+                    } focus:ring-2 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                   placeholder="example@email.com"
+                  autoComplete="email"
                 />
-                {errors.email && (
-                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                    <AlertCircle className="w-5 h-5 text-red-500" />
-                  </div>
+                {errors.email ? (
+                  <AlertCircle className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-500" />
+                ) : formData.email && !errors.email && (
+                  <CheckCircle2 className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
                 )}
               </div>
               {errors.email && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-shake">
                   <AlertCircle className="w-4 h-4" />
                   {errors.email}
                 </p>
@@ -112,33 +154,33 @@ export default function Login() {
             {/* Password Input */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Нууц үг
+                Нууц үг *
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
-                    setErrors({ ...errors, password: '' })
-                  }}
+                  value={formData.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  disabled={isLoading}
                   className={`w-full pl-12 pr-12 py-4 rounded-xl border-2 ${errors.password
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                       : 'border-gray-200 focus:border-purple-500 focus:ring-purple-500'
-                    } focus:ring-2 outline-none transition-all`}
+                    } focus:ring-2 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-shake">
                   <AlertCircle className="w-4 h-4" />
                   {errors.password}
                 </p>
@@ -150,7 +192,10 @@ export default function Login() {
               <label className="flex items-center cursor-pointer group">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 focus:ring-2 cursor-pointer"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoading}
+                  className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50"
                 />
                 <span className="ml-2 text-gray-700 group-hover:text-purple-600 transition">
                   Намайг санах
@@ -158,7 +203,8 @@ export default function Login() {
               </label>
               <button
                 type="button"
-                className="text-purple-600 hover:text-purple-700 font-semibold hover:underline transition"
+                className="text-purple-600 hover:text-purple-700 font-semibold hover:underline transition disabled:opacity-50"
+                disabled={isLoading}
               >
                 Нууц үг мартсан?
               </button>
@@ -172,7 +218,7 @@ export default function Login() {
             >
               {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   Нэвтэрч байна...
                 </>
               ) : (
@@ -187,12 +233,23 @@ export default function Login() {
             <button
               type="button"
               onClick={handleDemoLogin}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 border-2 border-gray-200"
+              disabled={isLoading}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 border-2 border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 size={18} />
               Demo данс ашиглах
             </button>
           </form>
+
+          {/* Test Accounts Info */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+            <p className="text-sm font-semibold text-blue-900 mb-2">📝 Туршилтын дансууд:</p>
+            <div className="space-y-1 text-xs text-blue-700">
+              <p>• demo@example.com / demo123</p>
+              <p>• admin@example.com / admin123</p>
+              <p>• test@test.com / test123</p>
+            </div>
+          </div>
 
           {/* Divider */}
           <div className="relative my-8">
@@ -206,7 +263,10 @@ export default function Login() {
 
           {/* Social Login */}
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all transform hover:scale-105 font-medium text-gray-700">
+            <button
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all transform hover:scale-105 font-medium text-gray-700 disabled:opacity-50"
+              disabled={isLoading}
+            >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -215,7 +275,10 @@ export default function Login() {
               </svg>
               Google
             </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all transform hover:scale-105 font-medium text-gray-700">
+            <button
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all transform hover:scale-105 font-medium text-gray-700 disabled:opacity-50"
+              disabled={isLoading}
+            >
               <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
@@ -240,6 +303,17 @@ export default function Login() {
           © 2025 Personal Organizer Pro. Бүх эрх хуулиар хамгаалагдсан.
         </p>
       </div>
+
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.3s ease-in-out;
+        }
+      `}</style>
     </div>
   )
 }
